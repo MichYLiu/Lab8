@@ -1,0 +1,143 @@
+---
+title: "ReshapingData"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(babynames)
+data(babynames)
+data(births)
+```
+
+```{r}
+census_births <- births
+ssa_births <- babynames %>%
+  rename(num_births = n) %>%
+  group_by(year) %>%
+  summarise(num_rows = n(), births = sum(num_births))
+
+total_births <- 
+  ssa_births %>% 
+  full_join(census_births, by = "year")
+
+total_births <- total_births %>%
+  select(-num_rows) %>%
+  rename(ssa = births.x) %>%
+  rename(census = births.y) 
+
+total_births %>%
+  ggplot(aes(x = year)) +
+  geom_line(aes(y = ssa), color = "blue") +
+  geom_line(aes(y = census), color = "green") +
+  ylab("Total Births") + xlab("Year")
+
+
+
+```
+```{r}
+total_births %>%
+  ggplot(aes(x = ssa, y = census)) +
+  geom_point()
+
+
+```
+
+
+```{r}
+births_long <- total_births %>%
+  gather(
+  key = "source", 
+  value = "births",
+  census, ssa)
+head(births_long)
+```
+```{r}
+births_long %>% ggplot(aes(x = year, y = births, color = source)) + geom_line()
+
+
+```
+```{r}
+births_long <- births_long %>% distinct()
+
+births_long %>% filter(source == "census") %>% tail(n = 10)
+```
+```{r}
+births_wide <- births_long %>%
+  spread(key = source, value = births)
+
+births_wide
+
+```
+```{r}
+mosaic::cor(census ~ ssa, data = births_wide, use = "pairwise.complete")
+
+```
+```{r}
+births_wide %>%
+  mutate(discrepency = census - ssa) %>%
+  ggplot(aes(x = year, y = discrepency)) +
+  geom_line() + ylab("Census Estimate - SSA Estimate")
+
+
+```
+
+```{r}
+wardeaths <- War_age_adjusted_mortality_from_GBD_20100812
+wardeaths <- wardeaths %>%
+  rename(country = "War, age-adjusted mortality due to")
+dim(wardeaths)
+```
+```{r}
+war <- wardeaths %>%
+  gather(
+    key = "year",
+    value = "deaths", 
+    -country
+  )
+
+head(war)
+dim(war)
+
+```
+```{r}
+##?parse_number
+
+war <- war %>%
+  mutate(parse_number(year))
+
+warplot <- war %>%
+  ggplot(aes(x = parse_number(year), y = deaths, color = country)) + geom_line() +xlab("Year")
+warplot
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
